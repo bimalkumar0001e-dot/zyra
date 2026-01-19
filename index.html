@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anime Sathi - Virtual Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Outfit', sans-serif;
+        background: #050505; /* Deep cinematic black */
+        overflow: hidden;
+        color: #fff;
+      }
+      .font-varela {
+        font-family: 'Varela Round', sans-serif;
+      }
+      
+      @keyframes breathe {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-10px) scale(1.01); }
+      }
+      .animate-breathe {
+        animation: breathe 4s ease-in-out infinite;
+      }
+
+      /* Triggered blink cycle */
+      @keyframes blink-cycle {
+        0%, 100% { transform: scaleY(1); }
+        40%, 60% { transform: scaleY(0.05); }
+      }
+      .blink-active {
+        animation: blink-cycle 0.18s ease-in-out forwards;
+      }
+
+      @keyframes speak {
+        0%, 100% { transform: scaleY(0.2); }
+        50% { transform: scaleY(1.2); }
+      }
+      .animate-speak {
+        animation: speak 0.15s ease-in-out infinite;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

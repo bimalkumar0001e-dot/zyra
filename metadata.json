@@ -1,0 +1,7 @@
+{
+  "name": "Anime Companion Hindi",
+  "description": "A real-time, emotionally expressive anime AI companion that speaks natural Hindi and Hinglish.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
