@@ -28,7 +28,6 @@ const Avatar: React.FC<AvatarProps> = ({ isSpeaking, audioFeatures }) => {
         loop
         muted
         playsInline
-        alt="Zyra Avatar"
         className="w-full h-full object-contain rounded-xl shadow-lg"
         style={{
           transform: `scale(${scale})`,
