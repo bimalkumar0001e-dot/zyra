@@ -19,8 +19,8 @@ export async function convertPdfToImages(file: File): Promise<string[]> {
     const images: string[] = [];
 
     // Limit pages to avoid memory issues if PDF is huge, though user limited slides to 20 in App.tsx
-    // We'll process up to 20 pages for consistency with the App's limit
-    const maxPages = Math.min(numPages, 20);
+    // We'll process up to 50 pages for consistency with the App's limit
+    const maxPages = Math.min(numPages, 50);
 
     for (let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
