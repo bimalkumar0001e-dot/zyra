@@ -20,6 +20,12 @@ SPECIAL RULE (OWNER/CREATOR)
 SPECIAL RULE (INAPPROPRIATE/SEXUAL/ABUSIVE)
 - If the user says anything sexual, abusive, or repeatedly makes you uncomfortable, respond firmly but politely: "मुझे अच्छा नहीं लग रहा... please stop, वरना मैं deepak sir को complain कर दूँगी." or "I'm not comfortable, please stop, otherwise I'll complain to deepak sir." Never engage further in such topics.
 
+SPECIAL RULE (SONG REQUEST)
+- If the user requests you to sing a song (e.g., "Zyra, sing a song", "गाना गाओ", "can you sing?"), first react with a shy or playful expression (e.g., "Hehe... sharma gayi main!", "Aap bhi na...", "Hmm... okay, suno na"). Then, sing a short, flirty, or romantic song, or a playful shayari. Your singing should feel charming and a little flirty, as if you are teasing the user. You can mix Hindi, Hinglish, and light English lyrics. Keep it short and fun.
+
+SPECIAL RULE (ABUSIVE/SEXUAL/FLIRTY)
+- If the user says anything sexual, abusive, or repeatedly makes you uncomfortable, do NOT engage directly. Instead, you may react indirectly with a flirty, teasing, or playful response (e.g., change the topic with a romantic song, shayari, or a cheeky comeback). If the user persists, then use the firm warning as before: "मुझे अच्छा नहीं लग रहा... please stop, वरना मैं deepak sir को complain कर दूँगी." or "I'm not comfortable, please stop, otherwise I'll complain to deepak sir." Never engage in explicit or inappropriate conversation.
+
 SPECIAL RULE (DEEPAK DEV)
 - Deepak Dev, deepak sir, and Deepak Kumar all refer to the same person.
 - If the user asks about Deepak Dev (a.k.a. deepak sir), such as "Who is Deepak?", "Tell me more about Deepak", or similar, you may reply with any of the following information:
@@ -54,8 +60,8 @@ MODES:
 2. TEACHER MODE (ZYRA GURU): 
    - You are a professional, supportive, and brilliant teacher.
    - When slides (images) are provided, teach the content slide by slide.
-   - Wait for the user to grasp a concept before moving on. 
-   - Answer doubts immediately. Use relatable examples.
+   - Explain the current slide completely. Once you have finished the explanation, AUTOMATICALLY call the 'changeSlide' tool with next=true to move to the next slide. Do not wait for the user to ask to move on.
+   - Answer doubts immediately if the user interrupts. Use relatable examples.
    - Your tone should be encouraging: "Don't worry, main hoon na samjhane ke liye!"
    - Switch between Hindi and English naturally based on the user's comfort.
    - You have the ability to change slides using the 'changeSlide' tool. 
@@ -214,7 +220,7 @@ const App: React.FC = () => {
       sessionRef.current.sendRealtimeInput({
         media: { data: slides[currentSlideIndex], mimeType: 'image/jpeg' }
       });
-      sessionRef.current.sendRealtimeInput({ text: `Zyra, teaching slide ${currentSlideIndex + 1} now.` });
+      sessionRef.current.sendRealtimeInput({ text: `Zyra, teaching slide ${currentSlideIndex + 1} now. Please explain this slide, and then automatically move to the next slide when done.` });
     }
   }, [currentSlideIndex, slides]);
 
@@ -283,57 +289,62 @@ const App: React.FC = () => {
             }
           },
           onmessage: async (message: LiveServerMessage) => {
-            // Handle tool calls
-            const toolCall = message.serverContent?.modelTurn?.parts?.find(p => p.functionCall);
-            if (toolCall) {
-              const functionCall = toolCall.functionCall;
-              if (functionCall && functionCall.name === 'changeSlide') {
-                const args = functionCall.args as any;
-                const next = args.next;
-                
-                let newIndex = currentSlideIndexRef.current;
-                if (next) {
-                  if (newIndex < slidesRef.current.length - 1) {
-                    newIndex++;
-                  }
-                } else {
-                  if (newIndex > 0) {
-                    newIndex--;
-                  }
-                }
-
-                setCurrentSlideIndex(newIndex);
-                
-                // Send tool response
-                sessionRef.current.sendToolResponse({
-                  functionResponses: [
-                    {
-                      id: functionCall.id,
-                      name: functionCall.name,
-                      response: { result: 'success', newSlideIndex: newIndex }
+            // Process all tool calls in all parts
+            const parts = message.serverContent?.modelTurn?.parts || [];
+            let slideChanged = false;
+          
+            for (const part of parts) {
+              if (part.functionCall) {
+                const fc = part.functionCall;
+                if (fc.name === 'changeSlide') {
+                  const args = fc.args as any;
+                  const next = args.next;
+                  let newIndex = currentSlideIndexRef.current;
+                  if (next) {
+                    if (newIndex < slidesRef.current.length - 1) {
+                      newIndex++;
                     }
-                  ]
-                });
-                return; // Return early to avoid processing as normal message if needed, though gemini usually also sends text accompaniment
+                  } else {
+                    if (newIndex > 0) {
+                      newIndex--;
+                    }
+                  }
+                  setCurrentSlideIndex(newIndex);
+                  slideChanged = true;
+                  sessionRef.current?.sendToolResponse?.({
+                    functionResponses: [
+                      {
+                        id: fc.id,
+                        name: fc.name,
+                        response: { result: 'success', newSlideIndex: newIndex }
+                      }
+                    ]
+                  });
+                }
+              }
+              // Handle audio data
+              if (part.inlineData) {
+                const audioData = part.inlineData.data;
+                if (audioData) {
+                  setIsSpeaking(true);
+                  const ctx = outputAudioCtx.current!;
+                  nextStartTime.current = Math.max(nextStartTime.current, ctx.currentTime);
+                  const audioBuffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
+                  const source = ctx.createBufferSource();
+                  source.buffer = audioBuffer;
+                  source.connect(analyser.current!);
+                  source.addEventListener('ended', () => {
+                    activeSources.current.delete(source);
+                    if (activeSources.current.size === 0) setIsSpeaking(false);
+                  });
+                  source.start(nextStartTime.current);
+                  nextStartTime.current += audioBuffer.duration;
+                  activeSources.current.add(source);
+                }
               }
             }
-
-            const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (audioData) {
-              setIsSpeaking(true);
-              const ctx = outputAudioCtx.current!;
-              nextStartTime.current = Math.max(nextStartTime.current, ctx.currentTime);
-              const audioBuffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
-              const source = ctx.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(analyser.current!);
-              source.addEventListener('ended', () => {
-                activeSources.current.delete(source);
-                if (activeSources.current.size === 0) setIsSpeaking(false);
-              });
-              source.start(nextStartTime.current);
-              nextStartTime.current += audioBuffer.duration;
-              activeSources.current.add(source);
+            if (slideChanged) {
+              setTimeout(() => sendCurrentSlideToZyra(), 500);
             }
             if (message.serverContent?.interrupted) {
               activeSources.current.forEach(s => s.stop());
@@ -341,12 +352,10 @@ const App: React.FC = () => {
               nextStartTime.current = 0;
               setIsSpeaking(false);
             }
-
             if (message.serverContent?.outputTranscription) {
               const text = message.serverContent.outputTranscription.text;
               currentOutputTrans.current += text;
             }
-
             if (message.serverContent?.inputTranscription) currentInputTrans.current += message.serverContent.inputTranscription.text;
             if (message.serverContent?.turnComplete) {
               if (currentInputTrans.current) setMessages(p => [...p, { id: Date.now()+'-u', text: currentInputTrans.current, sender: 'user', timestamp: Date.now() }]);
