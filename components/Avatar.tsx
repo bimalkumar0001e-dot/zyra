@@ -23,8 +23,8 @@ const Avatar: React.FC<AvatarProps> = ({ isSpeaking, activeMode }) => {
         background: 'transparent',
       }
     : {
-        width: '350px',
-        height: '220px',
+        width: '520px', // increased from 350px
+        height: '330px', // increased from 220px
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -44,14 +44,18 @@ const Avatar: React.FC<AvatarProps> = ({ isSpeaking, activeMode }) => {
       }
     : {
         width: '100%',
-        maxWidth: '350px',
+        maxWidth: '520px', // increased from 350px
         aspectRatio: '16/9',
-        borderRadius: '1.2rem',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        borderRadius: '1.6rem', // slightly larger rounding
+        boxShadow: '0 8px 32px rgba(0,0,0,0.35)', // stronger shadow
         objectFit: 'cover',
         background: '#181018',
         display: 'block',
       };
+
+  // Animate scale up when speaking
+  const scale = isSpeaking ? 1.12 : 1;
+  const transition = 'transform 0.35s cubic-bezier(0.4,0.2,0.2,1)';
 
   return (
     <div style={style}>
@@ -61,7 +65,11 @@ const Avatar: React.FC<AvatarProps> = ({ isSpeaking, activeMode }) => {
         loop
         muted
         playsInline
-        style={videoStyle}
+        style={{
+          ...videoStyle,
+          transform: `scale(${scale})`,
+          transition,
+        }}
       />
     </div>
   );
