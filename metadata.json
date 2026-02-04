@@ -1,0 +1,8 @@
+{
+  "name": "Zyra - Virtual Girlfriend & Cooking Companion",
+  "description": "A real-time, emotionally expressive anime AI companion (Zyra) who speaks natural Hindi and helps with cooking.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
