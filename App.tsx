@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
 import { Message, SessionStatus } from './types';
 import { decode, decodeAudioData, createPcmBlob, blobToBase64 } from './services/audioProcessing';
 import { convertPdfToImages } from './services/pdfProcessing';
@@ -23,6 +23,9 @@ MODES:
    - Answer doubts immediately. Use relatable examples.
    - Your tone should be encouraging: "Don't worry, main hoon na samjhane ke liye!"
    - Switch between Hindi and English naturally based on the user's comfort.
+   - You have the ability to change slides using the 'changeSlide' tool. 
+     - If the user says "next slide", "go forward", "agle slide pe chalo", call changeSlide(next=true).
+     - If the user says "previous slide", "go back", "pichle slide pe chalo", call changeSlide(next=false).
 
 CRITICAL INTERACTION RULES:
 - EVERYTHING IS VERBAL. Do not expect or ask for text chat.
@@ -57,6 +60,18 @@ const App: React.FC = () => {
   // Teacher Mode State
   const [slides, setSlides] = useState<string[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // Refs for accessing state inside callbacks
+  const slidesRef = useRef<string[]>([]);
+  const currentSlideIndexRef = useRef(0);
+
+  useEffect(() => {
+    slidesRef.current = slides;
+  }, [slides]);
+
+  useEffect(() => {
+    currentSlideIndexRef.current = currentSlideIndex;
+  }, [currentSlideIndex]);
 
   // Shared states
   const [timerValue, setTimerValue] = useState<number | null>(null);
@@ -186,6 +201,33 @@ const App: React.FC = () => {
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'changeSlide',
+                  description: 'Move to the next or previous slide in Teacher Mode.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      next: {
+                        type: Type.BOOLEAN,
+                        description: 'True for next slide, False for previous slide.'
+                      }
+                    },
+                    required: ['next']
+                  }
+                }
+              ]
+            }
+          ],
+          responseModalities: [Modality.AUDIO],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+          systemInstruction: SYSTEM_INSTRUCTION,
+          inputAudioTranscription: {},
+          outputAudioTranscription: {}
+        },
         callbacks: {
           onopen: () => {
             setStatus(SessionStatus.CONNECTED);
@@ -206,6 +248,41 @@ const App: React.FC = () => {
             }
           },
           onmessage: async (message: LiveServerMessage) => {
+            // Handle tool calls
+            const toolCall = message.serverContent?.modelTurn?.parts?.find(p => p.functionCall);
+            if (toolCall) {
+              const functionCall = toolCall.functionCall;
+              if (functionCall && functionCall.name === 'changeSlide') {
+                const args = functionCall.args as any;
+                const next = args.next;
+                
+                let newIndex = currentSlideIndexRef.current;
+                if (next) {
+                  if (newIndex < slidesRef.current.length - 1) {
+                    newIndex++;
+                  }
+                } else {
+                  if (newIndex > 0) {
+                    newIndex--;
+                  }
+                }
+
+                setCurrentSlideIndex(newIndex);
+                
+                // Send tool response
+                sessionRef.current.sendToolResponse({
+                  functionResponses: [
+                    {
+                      id: functionCall.id,
+                      name: functionCall.name,
+                      response: { result: 'success', newSlideIndex: newIndex }
+                    }
+                  ]
+                });
+                return; // Return early to avoid processing as normal message if needed, though gemini usually also sends text accompaniment
+              }
+            }
+
             const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
             if (audioData) {
               setIsSpeaking(true);
@@ -248,13 +325,6 @@ const App: React.FC = () => {
             setIsListening(false); 
             setView('landing'); 
           }
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-          systemInstruction: SYSTEM_INSTRUCTION,
-          inputAudioTranscription: {},
-          outputAudioTranscription: {}
         }
       });
       sessionRef.current = await sessionPromise;
