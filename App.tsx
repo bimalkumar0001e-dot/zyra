@@ -484,11 +484,23 @@ const App: React.FC = () => {
     {slides.length > 0 ? (
       <div className="relative w-full max-w-5xl h-[38vw] aspect-[16/9] bg-black/80 rounded-xl overflow-hidden border border-white/20 shadow-2xl flex flex-col items-center justify-center">
   <img src={`data:image/jpeg;base64,${slides[currentSlideIndex]}`} alt="Slide" className="w-full h-full object-contain" />
-  <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between bg-black/60 backdrop-blur-sm">
-    <button onClick={(e) => { e.stopPropagation(); if(currentSlideIndex>0) setCurrentSlideIndex(v=>v-1); }} className="text-[10px] px-2 py-0.5 bg-white/10 rounded">Prev</button>
-    <span className="text-[10px] text-white/60">Slide {currentSlideIndex+1}</span>
-    <button onClick={(e) => { e.stopPropagation(); if(currentSlideIndex<slides.length-1) setCurrentSlideIndex(v=>v+1); }} className="text-[10px] px-2 py-0.5 bg-white/10 rounded">Next</button>
-  </div>
+  // ...existing code...
+<div className="absolute bottom-0 left-0 right-0 p-2 flex justify-center bg-black/60 backdrop-blur-sm">
+  <button
+    onClick={(e) => { e.stopPropagation(); if(currentSlideIndex>0) setCurrentSlideIndex(v=>v-1); }}
+    className="text-[10px] px-2 py-0.5 bg-white/10 rounded mr-4"
+  >
+    Prev
+  </button>
+  <span className="text-[10px] text-white/60 mx-2">Slide {currentSlideIndex+1}</span>
+  <button
+    onClick={(e) => { e.stopPropagation(); if(currentSlideIndex<slides.length-1) setCurrentSlideIndex(v=>v+1); }}
+    className="text-[10px] px-2 py-0.5 bg-white/10 rounded ml-4"
+  >
+    Next
+  </button>
+</div>
+// ...existing code...
 </div>
     ) : null}
   </div>
