@@ -208,10 +208,10 @@ const App: React.FC = () => {
          const b64 = await blobToBase64(file);
          newSlides.push(b64);
        }
-       if (newSlides.length >= 50) break; 
+       if (newSlides.length >= 250) break; 
     }
 
-    setSlides(newSlides.slice(0, 50)); // Ensure we don't exceed limit
+    setSlides(newSlides.slice(0, 250)); // Ensure we don't exceed limit
     setCurrentSlideIndex(0);
   };
 
